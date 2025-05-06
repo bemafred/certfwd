@@ -88,7 +88,7 @@ if (clientCert == null)
     Log("[ERROR] Certificate not found.");
     return;
 }
-Log($"[OK] Certifikat hittat: {clientCert.Subject}");
+Log($"[OK] Client certificate found: {clientCert.Subject}");
 
 // ==== Cancellation Token Setup ====
 
@@ -162,7 +162,7 @@ try
                     {
                         using var reader = new StreamReader(request.InputStream, clientEncoding);
                         var requestBody = await reader.ReadToEndAsync();
-                        Log($">>> Body:\n{requestBody}");
+                        Log($">>> Body:\n\n{requestBody}\n");
 
                         var forwardBytes = forwardEncoding.GetBytes(requestBody);
                         forwardRequest.Content = new ByteArrayContent(forwardBytes);
@@ -206,12 +206,12 @@ try
                             await using var gzipStream = new GZipStream(rawStream, CompressionMode.Decompress);
                             using var reader = new StreamReader(gzipStream, clientEncoding);
                             var decompressed = await reader.ReadToEndAsync();
-                            Log($"<<< Body (decompressed):\n{decompressed}");
+                            Log($"<<< Body (decompressed):\n\n{decompressed}\n");
                         }
                         else
                         {
                             var responseBody = await response.Content.ReadAsStringAsync();
-                            Log($">>> Body:\n{responseBody}");
+                            Log($">>> Body:\n\n{responseBody}\n");
                         }
                     }
 
@@ -259,6 +259,7 @@ finally
     Log("[INFO] HttpListener stopped.");
 }
 
+Log($"[INFO] {programName} terminated.");
 return;
 
 // ==== Logging ====
