@@ -72,14 +72,12 @@ The directory is created automatically if it doesn't exist.
 To build a fully self-contained binary with trimming and AOT:
 
 ```bash
-dotnet publish -c Release -r linux-x64 \
-  -p:PublishSingleFile=true \
+dotnet publish -c Release -r win-x64 \
   -p:PublishTrimmed=true \
-  -p:PublishAot=true \
-  -p:EnableCompressionInSingleFile=true
+  -p:PublishAot=true
 ```
 
-Replace `linux-x64` with `win-x64` to build for Windows.
+Replace `win-x64` with `linux-x64` to build for Linux.
 
 ---
 
