@@ -28,7 +28,7 @@ certfwd <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=f
 | Argument            | Description                                                        |
 |---------------------|--------------------------------------------------------------------|
 | `localUrl`          | Local URL to listen on, e.g. `http://localhost:5000/`              |
-| `targetUrl`         | Remote URL to forward requests to, e.g `htts://remote:5000/`       |
+| `targetUrl`         | Remote URL to forward requests to, e.g `https://remote:5000/`      |
 | `certSubject`       | Case-insensitive part of the certificate subject name              |
 
 ### Options
