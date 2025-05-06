@@ -27,12 +27,14 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
+var programName = args[0];
+
 // ==== Logging target ====
 var logPath = Path.Combine(
     OperatingSystem.IsWindows()
         ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.local/share",
-    "certfwd",
+    programName,
     "proxy.log"
 );
 
@@ -42,7 +44,7 @@ Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
 if (args.Length < 4)
 {
-    Console.WriteLine("Usage: certfwd <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=false]");
+    Console.WriteLine($"Usage: {programName} <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=false]");
     return;
 }
 
@@ -92,7 +94,7 @@ var cts = new CancellationTokenSource();
 var cancellationToken = cts.Token;
 
 // Handle Ctrl+C or SIGTERM
-Console.CancelKeyPress += (sender, e) =>
+Console.CancelKeyPress += (_, e) =>
 {
     Log("[INFO] Shutdown signal received. Stopping...");
     cts.Cancel();
@@ -132,7 +134,7 @@ try
                     Log($">>> Client encoding:  {clientEncoding.WebName}");
                     Log($">>> Forward encoding: {forwardEncoding.WebName}");
 
-                    Log($">>> Headers:");
+                    Log(">>> Headers:");
                     foreach (string header in request.Headers)
                         Log($">>> {header}: {request.Headers[header]}");
 
