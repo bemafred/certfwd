@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "certfwd": {
+      "commandName": "Project",
+      "commandLineArgs": "http://localhost:8080/\r\nhttps://maintenance-listning.vgregion.se/\r\ntest-vardval.vgregion.se"
+    }
+  }
+}
