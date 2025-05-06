@@ -1,6 +1,6 @@
 # certfwd
 
-**certfwd** is a lightweight, standalone reverse proxy tool for forwarding SOAP/TLS requests with injected client certificates. Ideal for cases where the client cannot natively handle certificates, or where you want full visibility and control over secure traffic.
+**certfwd** is a lightweight, standalone reverse proxy tool for forwarding SOAP/TLS requests with injected client certificates and path-aware forwarding. Ideal for cases where the client cannot natively handle certificates, or where you want full visibility and control over secure traffic.
 
 Designed to work equally well on Windows and Linux, without dependencies.
 
