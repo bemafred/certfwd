@@ -67,47 +67,6 @@ The directory is created automatically if it doesn't exist.
 
 ---
 
-## 🖥 Running as a Service
-
-### Windows
-1. Copy `certfwd.exe` to `C:\Program Files\certfwd\`
-2. Create the service:
-```powershell
-sc create certfwd binPath= "\"C:\Program Files\certfwd\certfwd.exe\" http://localhost:5000/ https://target/svc \"CN=MyCert\"" start= auto
-```
-3. Start the service:
-```powershell
-sc start certfwd
-```
-
-### Linux (systemd)
-1. Copy binary to `/usr/local/bin/certfwd`
-2. Create `/etc/systemd/system/certfwd.service`:
-```ini
-[Unit]
-Description=certfwd reverse TLS proxy
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/certfwd http://localhost:5000/ https://target/svc "CN=MyCert"
-Restart=always
-RestartSec=3
-StandardOutput=journal
-StandardError=journal
-User=youruser
-
-[Install]
-WantedBy=multi-user.target
-```
-3. Enable and start:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable certfwd
-sudo systemctl start certfwd
-```
-
----
-
 ## 🛠 Building
 
 To build a fully self-contained binary with trimming and AOT:
