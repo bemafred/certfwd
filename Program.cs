@@ -27,7 +27,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-var programName = args[0];
+var programName = Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]);
 
 // ==== Logging target ====
 var logPath = Path.Combine(
@@ -42,15 +42,15 @@ Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
 // ==== Argument handling ====
 
-if (args.Length < 4)
+if (args.Length < 3)
 {
     Console.WriteLine($"Usage: {programName} <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=false]");
     return;
 }
 
-var localUrl = args[1];
-var targetUrl = args[2];
-var certSubject = args[3];
+var localUrl = args[0];
+var targetUrl = args[1];
+var certSubject = args[2];
 
 if (!Uri.TryCreate(localUrl, UriKind.Absolute, out var localUri) || (localUri.Scheme != Uri.UriSchemeHttp && localUri.Scheme != Uri.UriSchemeHttps))
 {
@@ -201,6 +201,7 @@ try
                         context.Response.ContentType =
                             $"{response.Content.Headers.ContentType?.MediaType}; charset={clientEncoding.WebName}";
                         context.Response.ContentLength64 = responseBytes.Length;
+
                         await context.Response.OutputStream.WriteAsync(responseBytes);
                     }
                     else
@@ -208,6 +209,7 @@ try
                         context.Response.StatusCode = (int)response.StatusCode;
                         context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
                         context.Response.ContentLength64 = response.Content.Headers.ContentLength ?? -1;
+                        
 
                         try
                         {
