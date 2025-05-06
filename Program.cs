@@ -2,6 +2,7 @@
 using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 
 // ==== Logging target ====
 var logPath = Path.Combine(
@@ -15,6 +16,7 @@ var logPath = Path.Combine(
 Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
 // ==== Argument handling ====
+
 if (args.Length < 4)
 {
     Console.WriteLine("Usage: certfwd <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=false]");
@@ -24,6 +26,25 @@ if (args.Length < 4)
 var localUrl = args[1];
 var targetUrl = args[2];
 var certSubject = args[3];
+
+if (!Uri.TryCreate(localUrl, UriKind.Absolute, out var localUri) || (localUri.Scheme != Uri.UriSchemeHttp && localUri.Scheme != Uri.UriSchemeHttps))
+{
+    Console.WriteLine("[ERROR] Invalid localUrl. It must be a valid HTTP or HTTPS URL.");
+    return;
+}
+
+if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var targetUri) || (targetUri.Scheme != Uri.UriSchemeHttp && targetUri.Scheme != Uri.UriSchemeHttps))
+{
+    Console.WriteLine("[ERROR] Invalid targetUrl. It must be a valid HTTP or HTTPS URL.");
+    return;
+}
+
+if (string.IsNullOrWhiteSpace(certSubject))
+{
+    Console.WriteLine("[ERROR] Invalid certSubject. It cannot be null or empty.");
+    return;
+}
+
 var preserveEncoding = args.Contains("--preserve-encoding", StringComparer.OrdinalIgnoreCase);
 var logBody = !args.Contains("--log-body=false", StringComparer.OrdinalIgnoreCase);
 
@@ -34,6 +55,7 @@ Log($"Preserve encoding forward: {(preserveEncoding ? "YES" : "NO (UTF-8 used)")
 Log($"Log to: {logPath}");
 
 var clientCert = FindCertificate(certSubject);
+
 if (clientCert == null)
 {
     Log("[ERROR] Certificate not found.");
@@ -41,7 +63,21 @@ if (clientCert == null)
 }
 Log($"[OK] Certifikat hittat: {clientCert.Subject}");
 
+// ==== Cancellation Token Setup ====
+
+var cts = new CancellationTokenSource();
+var cancellationToken = cts.Token;
+
+// Handle Ctrl+C or SIGTERM
+Console.CancelKeyPress += (sender, e) =>
+{
+    Log("[INFO] Shutdown signal received. Stopping...");
+    cts.Cancel();
+    e.Cancel = true; // Prevent immediate termination
+};
+
 // ==== HTTP och proxy ====
+
 var listener = new HttpListener();
 listener.Prefixes.Add(localUrl);
 listener.Start();
@@ -53,68 +89,157 @@ handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
 
 var httpClient = new HttpClient(handler);
 
-while (true)
+try
 {
-    var context = await listener.GetContextAsync();
-    _ = Task.Run(async () =>
+    while (!cancellationToken.IsCancellationRequested)
     {
-        var request = context.Request;
-        var clientEncoding = request.ContentEncoding;
-        var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
-
-        Log($">>> {request.HttpMethod} {request.Url}");
-        Log($">>> Client encoding:  {clientEncoding.WebName}");
-        Log($">>> Forward encoding: {forwardEncoding.WebName}");
-
-        using var reader = new StreamReader(request.InputStream, clientEncoding);
-        var requestBody = await reader.ReadToEndAsync();
-
-        Log($">>> Headers:");
-        foreach (string header in request.Headers)
-            Log($">>> {header}: {request.Headers[header]}");
-
-        Log($">>> Body: {(logBody ? requestBody : "[hidden]")}");
-
-        var forwardUriBase = new Uri(targetUrl);
-        var finalTarget = new Uri(forwardUriBase, request.RawUrl);
-        var forwardRequest = new HttpRequestMessage(new HttpMethod(request.HttpMethod), finalTarget);
-        Log($">>> Forward target: {finalTarget}");
-
-        foreach (string header in request.Headers)
+        try
         {
-            if (!WebHeaderCollection.IsRestricted(header) &&
-                !string.Equals(header, "Content-Length", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(header, "Host", StringComparison.OrdinalIgnoreCase))
+            var context = await listener.GetContextAsync();
+            _ = Task.Run(async () =>
             {
-                forwardRequest.Headers.TryAddWithoutValidation(header, request.Headers[header]);
-            }
+                try
+                {
+                    var request = context.Request;
+                    var clientEncoding = request.ContentEncoding;
+                    var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
+
+                    Log($">>> {request.HttpMethod} {request.Url}");
+                    Log($">>> Client encoding:  {clientEncoding.WebName}");
+                    Log($">>> Forward encoding: {forwardEncoding.WebName}");
+
+                    Log($">>> Headers:");
+                    foreach (string header in request.Headers)
+                        Log($">>> {header}: {request.Headers[header]}");
+
+                    var forwardUriBase = new Uri(targetUrl);
+                    var finalTarget = new Uri(forwardUriBase, request.RawUrl);
+                    var forwardRequest = new HttpRequestMessage(new HttpMethod(request.HttpMethod), finalTarget);
+                    Log($">>> Forward target: {finalTarget}");
+
+                    foreach (string header in request.Headers)
+                    {
+                        if (!WebHeaderCollection.IsRestricted(header) &&
+                            !string.Equals(header, "Content-Length", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(header, "Host", StringComparison.OrdinalIgnoreCase))
+                        {
+                            forwardRequest.Headers.TryAddWithoutValidation(header, request.Headers[header]);
+                        }
+                    }
+
+                    if (logBody)
+                    {
+                        using var reader = new StreamReader(request.InputStream, clientEncoding);
+                        var requestBody = await reader.ReadToEndAsync();
+                        Log($">>> Body: {requestBody}");
+
+                        var forwardBytes = forwardEncoding.GetBytes(requestBody);
+                        forwardRequest.Content = new ByteArrayContent(forwardBytes);
+                        forwardRequest.Content.Headers.ContentType =
+                            MediaTypeHeaderValue.Parse(request.ContentType ?? "application/octet-stream");
+                        forwardRequest.Content.Headers.ContentType.CharSet = forwardEncoding.WebName;
+                    }
+                    else
+                    {
+                        forwardRequest.Content = new StreamContent(request.InputStream);
+                        forwardRequest.Content.Headers.ContentType =
+                            MediaTypeHeaderValue.Parse(request.ContentType ?? "application/octet-stream");
+                    }
+
+                    HttpResponseMessage response;
+
+                    try
+                    {
+                        response = await httpClient.SendAsync(forwardRequest, HttpCompletionOption.ResponseHeadersRead);
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Log($"[ERROR] Failed to forward request: {ex.Message}");
+                        context.Response.StatusCode = (int)HttpStatusCode.BadGateway;
+                        context.Response.Close();
+                        return;
+                    }
+
+                    Log($"<<< {((int)response.StatusCode)} {response.ReasonPhrase}");
+                    Log("<<< Headers:");
+                    foreach (var header in response.Headers)
+                        Log($"<<< {header.Key}: {string.Join(", ", header.Value)}");
+
+                    if (logBody)
+                    {
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        Log($"<<< Body: {responseBody}");
+
+                        var responseBytes = clientEncoding.GetBytes(responseBody);
+                        context.Response.StatusCode = (int)response.StatusCode;
+                        context.Response.ContentType =
+                            $"{response.Content.Headers.ContentType?.MediaType}; charset={clientEncoding.WebName}";
+                        context.Response.ContentLength64 = responseBytes.Length;
+                        await context.Response.OutputStream.WriteAsync(responseBytes);
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = (int)response.StatusCode;
+                        context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+                        context.Response.ContentLength64 = response.Content.Headers.ContentLength ?? -1;
+
+                        try
+                        {
+                            await using var responseStream = await response.Content.ReadAsStreamAsync();
+                            await responseStream.CopyToAsync(context.Response.OutputStream);
+                        }
+                        catch (IOException ioEx)
+                        {
+                            Log($"[ERROR] I/O error during response streaming: {ioEx.Message}");
+                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"[ERROR] Unexpected error during response streaming: {ex.Message}");
+                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        }
+                        finally
+                        {
+                            try
+                            {
+                                context.Response.Close();
+                            }
+                            catch (Exception closeEx)
+                            {
+                                Log($"[ERROR] Failed to close response: {closeEx.Message}");
+                            }
+                        }
+                    }
+                    context.Response.Close();
+                }
+                catch (Exception ex)
+                {
+                    Log($"[ERROR] An error occurred while processing the request: {ex.Message}");
+                    try
+                    {
+                        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        context.Response.Close();
+                    }
+                    catch
+                    {
+                        // Ignore errors during response cleanup
+                    }
+                }
+            });
         }
-        var forwardBytes = forwardEncoding.GetBytes(requestBody);
-        forwardRequest.Content = new ByteArrayContent(forwardBytes);
-        forwardRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("text/xml")
+        catch (Exception ex)
         {
-            CharSet = forwardEncoding.WebName
-        };
-
-        var response = await httpClient.SendAsync(forwardRequest);
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        Log($"<<< {((int)response.StatusCode)} {response.ReasonPhrase}");
-        Log("<<< Headers:");
-        foreach (var header in response.Headers)
-            Log($"<<< {header.Key}: {string.Join(", ", header.Value)}");
-
-        Log($"<<< Body: {(logBody ? responseBody : "[hidden]")}");
-
-        var responseBytes = clientEncoding.GetBytes(responseBody);
-        context.Response.StatusCode = (int)response.StatusCode;
-        context.Response.ContentType = "text/xml; charset=" + clientEncoding.WebName;
-        context.Response.ContentLength64 = responseBytes.Length;
-        await context.Response.OutputStream.WriteAsync(responseBytes);
-        context.Response.Close();
-    });
+            Log($"[ERROR] An error occurred while accepting a connection: {ex.Message}");
+        }
+    }
+}
+finally
+{
+    listener.Stop();
+    Log("[INFO] HttpListener stopped.");
 }
 
+return;
 
 // ==== Logging ====
 void Log(string line)
