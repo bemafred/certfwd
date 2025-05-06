@@ -162,7 +162,7 @@ try
                     {
                         using var reader = new StreamReader(request.InputStream, clientEncoding);
                         var requestBody = await reader.ReadToEndAsync();
-                        Log($">>> Body: {requestBody}");
+                        Log($">>> Body:\n{requestBody}");
 
                         var forwardBytes = forwardEncoding.GetBytes(requestBody);
                         forwardRequest.Content = new ByteArrayContent(forwardBytes);
@@ -176,6 +176,7 @@ try
                         forwardRequest.Content.Headers.ContentType =
                             MediaTypeHeaderValue.Parse(request.ContentType ?? "application/octet-stream");
                     }
+                    
                     HttpResponseMessage response;
 
                     try
@@ -210,7 +211,7 @@ try
                         else
                         {
                             var responseBody = await response.Content.ReadAsStringAsync();
-                            Log($"<<< Body: {responseBody}");
+                            Log($">>> Body:\n{responseBody}");
                         }
                     }
 
