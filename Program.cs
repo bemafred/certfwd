@@ -77,7 +77,7 @@ var logBody = !args.Contains("--log-body=false", StringComparer.OrdinalIgnoreCas
 
 Log($"Listen on: {localUrl}");
 Log($"Forward to: {targetUrl}");
-Log($"Find certificate: {certSubject}");
+Log($"Client certificate: {certSubject}");
 Log($"Preserve encoding forward: {(preserveEncoding ? "YES" : "NO (UTF-8 used)")}");
 Log($"Log to: {logPath}");
 
@@ -155,6 +155,9 @@ try
                         }
                     }
 
+                    forwardRequest.Headers.AcceptEncoding.Clear();
+                    forwardRequest.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
+
                     if (logBody)
                     {
                         using var reader = new StreamReader(request.InputStream, clientEncoding);
@@ -173,7 +176,6 @@ try
                         forwardRequest.Content.Headers.ContentType =
                             MediaTypeHeaderValue.Parse(request.ContentType ?? "application/octet-stream");
                     }
-
                     HttpResponseMessage response;
 
                     try
@@ -203,7 +205,7 @@ try
                             await using var gzipStream = new GZipStream(rawStream, CompressionMode.Decompress);
                             using var reader = new StreamReader(gzipStream, clientEncoding);
                             var decompressed = await reader.ReadToEndAsync();
-                            Log($"<<< Body (decompressed): {decompressed}");
+                            Log($"<<< Body (decompressed):\n{decompressed}");
                         }
                         else
                         {
