@@ -22,11 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
+// Not available in args[0], due to top-level statements...
 var programName = Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]);
 
 // ==== Logging target ====
@@ -121,7 +123,7 @@ try
         try
         {
             var context = await listener.GetContextAsync();
-            
+
             _ = Task.Run(async () =>
             {
                 try
@@ -191,54 +193,41 @@ try
                     foreach (var header in response.Headers)
                         Log($"<<< {header.Key}: {string.Join(", ", header.Value)}");
 
+                    var isCompressed = response.Content.Headers.ContentEncoding.Contains("gzip", StringComparer.OrdinalIgnoreCase);
+
                     if (logBody)
                     {
-                        var responseBody = await response.Content.ReadAsStringAsync();
-                        Log($"<<< Body: {responseBody}");
-
-                        var responseBytes = clientEncoding.GetBytes(responseBody);
-                        context.Response.StatusCode = (int)response.StatusCode;
-                        context.Response.ContentType =
-                            $"{response.Content.Headers.ContentType?.MediaType}; charset={clientEncoding.WebName}";
-                        context.Response.ContentLength64 = responseBytes.Length;
-
-                        await context.Response.OutputStream.WriteAsync(responseBytes);
+                        if (isCompressed)
+                        {
+                            await using var rawStream = await response.Content.ReadAsStreamAsync();
+                            await using var gzipStream = new GZipStream(rawStream, CompressionMode.Decompress);
+                            using var reader = new StreamReader(gzipStream, clientEncoding);
+                            var decompressed = await reader.ReadToEndAsync();
+                            Log($"<<< Body (decompressed): {decompressed}");
+                        }
+                        else
+                        {
+                            var responseBody = await response.Content.ReadAsStringAsync();
+                            Log($"<<< Body: {responseBody}");
+                        }
                     }
-                    else
+
+                    context.Response.StatusCode = (int)response.StatusCode;
+                    context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+
+                    if (response.Content.Headers.ContentLength.HasValue)
+                        context.Response.ContentLength64 = response.Content.Headers.ContentLength.Value;
+
+                    foreach (var header in response.Content.Headers)
                     {
-                        context.Response.StatusCode = (int)response.StatusCode;
-                        context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-                        context.Response.ContentLength64 = response.Content.Headers.ContentLength ?? -1;
-                        
-
-                        try
+                        foreach (var value in header.Value)
                         {
-                            await using var responseStream = await response.Content.ReadAsStreamAsync();
-                            await responseStream.CopyToAsync(context.Response.OutputStream);
-                        }
-                        catch (IOException ioEx)
-                        {
-                            Log($"[ERROR] I/O error during response streaming: {ioEx.Message}");
-                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                        }
-                        catch (Exception ex)
-                        {
-                            Log($"[ERROR] Unexpected error during response streaming: {ex.Message}");
-                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                        }
-                        finally
-                        {
-                            try
-                            {
-                                context.Response.Close();
-                            }
-                            catch (Exception closeEx)
-                            {
-                                Log($"[ERROR] Failed to close response: {closeEx.Message}");
-                            }
+                            context.Response.Headers[header.Key] = value;
                         }
                     }
-                    context.Response.Close();
+
+                    await using var forwardStream = await response.Content.ReadAsStreamAsync();
+                    await forwardStream.CopyToAsync(context.Response.OutputStream);
                 }
                 catch (Exception ex)
                 {
@@ -277,7 +266,6 @@ void Log(string line)
     Console.WriteLine(formatted);
     File.AppendAllText(logPath, formatted + Environment.NewLine);
 }
-
 
 // ==== Certificate ====
 X509Certificate2? FindCertificate(string subjectName)
