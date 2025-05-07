@@ -118,7 +118,17 @@ dotnet publish -c Release -r win-x64 \
   -p:PublishAot=true
 ```
 
-Replace `win-x64` with `linux-x64` to build for Linux.
+Replace win-x64 with linux-x64, osx-x64, or osx-arm64 to build for Linux or macOS.
+
+---
+
+## 🧾 Changelog
+
+### [v1.0.1](https://github.com/bemafred/certfwd/releases/tag/v1.0.1) – 2025-05-07
+- Fixed direction arrow for proxy to client Body log
+
+### [v1.0.0](https://github.com/bemafred/certfwd/releases/tag/v1.0.0) – 2025-05-06
+- Initial release
 
 ---
 
