@@ -71,13 +71,11 @@ The directory is created automatically if it doesn't exist.
 
 ---
 
-## 🔐 Downloads
-
-Latest Version: ![release](https://img.shields.io/github/v/release/bemafred/certfwd?label=&style=flat-square)
+## 🔐 Download
 
 ### Binaries
 
-| Platform       | Binary | SHA256 |
+| Platform       | Binary | SHA256 | 
 |----------------|--------|--------|
 | **Windows x64** | [certfwd-win-x64.zip](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip.sha256) |
 | **Linux x64**   | [certfwd-linux-x64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz.sha256) |
