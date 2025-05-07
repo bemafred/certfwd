@@ -81,7 +81,7 @@ The directory is created automatically if it doesn't exist.
 
 ## 🛠 Building
 
-To build a fully self-contained binary with trimming and AOT:
+To build a fully self-contained binary with trimming and AOT (Requires installed tooling for C/C++):
 
 ```bash
 dotnet publish -c Release -r win-x64 \
