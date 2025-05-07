@@ -73,6 +73,8 @@ The directory is created automatically if it doesn't exist.
 
 ## 🔐 Downloads
 
+### Latest Version: ![release](https://img.shields.io/github/v/release/bemafred/certfwd?label=&style=flat-square)
+
 ### Binaries
 
 | Platform       | Binary | SHA256 |
