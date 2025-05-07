@@ -84,20 +84,27 @@ The directory is created automatically if it doesn't exist.
 
 ### 🔍 Verify download (SHA256)
 
+Verify that the checksum of the downloaded file matches the .sha256 file included in the release.
+
+---
+
 ### 💻 Windows (PowerShell)
 
 ```powershell
 Get-FileHash .\certfwd-win-x64.zip -Algorithm SHA256
 ```
 
-### 🐧🍎 Linux / macOS (Bash)
+### 🐧 Linux (Bash)
 
 ```bash
 sha256sum certfwd-linux-x64.tar.gz
 ```
 
----
+### 🍎 macOS (Bash)
 
+```bash
+shasum -a 256 certfwd-osx-arm64.tar.gz
+```
 
 ---
 
