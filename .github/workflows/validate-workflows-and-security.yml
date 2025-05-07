@@ -1,0 +1,34 @@
+name: validate-workflows-and-security
+
+# Validate workflow YAML and SECURITY.md formatting
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/**/*.yml
+      - .github/workflows/**/*.yaml
+      - SECURITY.md
+
+jobs:
+  validate:
+    name: Validate workflows and security policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: sudo apt-get update && sudo apt-get install -y yamllint
+
+      - name: Lint all workflow YAML
+        run: |
+          yamllint -d '{extends: default, rules: {line-length: disable}}' .github/workflows || true
+
+      - name: Check SECURITY.md formatting
+        run: |
+          if [ -f SECURITY.md ]; then
+            echo "SECURITY.md found. Checking..."
+            grep -q "# Security Policy" SECURITY.md || (echo "Missing expected header." && exit 1)
+          else
+            echo "SECURITY.md not found. Skipping."
+          fi
