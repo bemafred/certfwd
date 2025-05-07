@@ -1,10 +1,22 @@
-# certfwd
+# 🧭 certfwd
 
 **certfwd** is a lightweight, standalone reverse proxy tool for forwarding SOAP/TLS requests with injected client certificates and path-aware forwarding. Ideal for cases where the client cannot natively handle certificates appropriately, or where you want full visibility and control over secure traffic.
 
 Designed to work equally well on Windows and Linux, without dependencies.
 
+[![Latest Release](https://img.shields.io/github/v/release/bemafred/certfwd?label=release)](https://github.com/bemafred/certfwd/releases)
+[![Build Status](https://github.com/bemafred/certfwd/actions/workflows/certfwd-cross-platform-builds.yml/badge.svg)](https://github.com/bemafred/certfwd/actions/workflows/certfwd-cross-platform-builds.yml)
+[![License](https://img.shields.io/github/license/bemafred/certfwd)](https://github.com/bemafred/certfwd/blob/main/LICENSE)
+
 ---
+
+## 🔐 Download
+
+| Platform       | Binary | SHA256 |
+|----------------|--------|--------|
+| **Windows x64** | [certfwd-win-x64.zip](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip.sha256) |
+| **Linux x64**   | [certfwd-linux-x64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz.sha256) |
+| **macOS ARM64** | [certfwd-osx-arm64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-osx-arm64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-osx-arm64.tar.gz.sha256) |
 
 ## ✨ Features
 

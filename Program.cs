@@ -25,11 +25,31 @@ SOFTWARE.
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 // Not available in args[0], due to top-level statements...
 var programName = Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]);
+
+if (args.Contains("--version", StringComparer.OrdinalIgnoreCase))
+{
+    var version = Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
+    Console.WriteLine($"{programName} version {version}");
+    return;
+}
+
+if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("-h"))
+{
+    Console.WriteLine($"\nUsage: {programName} <localUrl> <targetUrl> <certSubject> [options]\n");
+    Console.WriteLine("Options:");
+    Console.WriteLine("  --preserve-encoding     Preserve incoming encoding when forwarding (default: UTF-8)");
+    Console.WriteLine("  --log-body=false        Disable body logging");
+    Console.WriteLine("  --version               Print version info");
+    Console.WriteLine("  --help, -h              Show this help message\n");
+    return;
+}
 
 // ==== Logging target ====
 var logPath = Path.Combine(

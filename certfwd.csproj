@@ -8,6 +8,13 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Version>$(Version)</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+  </PropertyGroup>
+
   <!-- Debug: fast and flexible -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <PublishTrimmed>false</PublishTrimmed>
