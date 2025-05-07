@@ -5,7 +5,7 @@
 Designed to work equally well on Windows and Linux, without dependencies.
 
 [![Latest Release](https://img.shields.io/github/v/release/bemafred/certfwd?label=release)](https://github.com/bemafred/certfwd/releases)
-[![Build Status](https://github.com/bemafred/certfwd/actions/workflows/certfwd-cross-platform-builds.yml/badge.svg)](https://github.com/bemafred/certfwd/actions/workflows/certfwd-cross-platform-builds.yml)
+[![Build Status](https://github.com/bemafred/certfwd/actions/workflows/certfwd-release.yml/badge.svg)](https://github.com/bemafred/certfwd/actions/workflows/certfwd-release.yml)
 [![License](https://img.shields.io/github/license/bemafred/certfwd)](https://github.com/bemafred/certfwd/blob/main/LICENSE)
 
 ---
