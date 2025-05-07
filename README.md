@@ -10,33 +10,6 @@ Designed to work equally well on Windows and Linux, without dependencies.
 
 ---
 
-## 🔐 Downloads
-
-### Binaries
-
-| Platform       | Binary | SHA256 |
-|----------------|--------|--------|
-| **Windows x64** | [certfwd-win-x64.zip](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip.sha256) |
-| **Linux x64**   | [certfwd-linux-x64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz.sha256) |
-| **macOS ARM64** | [certfwd-osx-arm64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-osx-arm64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-osx-arm64.tar.gz.sha256) |
-
-
-### 🔍 Verify download (SHA256)
-
-### 💻 Windows (PowerShell)
-
-```powershell
-Get-FileHash .\certfwd-win-x64.zip -Algorithm SHA256
-```
-
-### 🐧🍎 Linux / macOS (Bash)
-
-```bash
-sha256sum certfwd-linux-x64.tar.gz
-```
-
----
-
 ## ✨ Features
 
 - Self-contained, single-file executable (`.exe` or ELF)
@@ -95,6 +68,36 @@ certfwd writes logs to a file in addition to the terminal.
 | Linux/macOS| `~/.local/share/certfwd/proxy.log`                    |
 
 The directory is created automatically if it doesn't exist.
+
+---
+
+## 🔐 Downloads
+
+### Binaries
+
+| Platform       | Binary | SHA256 |
+|----------------|--------|--------|
+| **Windows x64** | [certfwd-win-x64.zip](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-win-x64.zip.sha256) |
+| **Linux x64**   | [certfwd-linux-x64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-linux-x64.tar.gz.sha256) |
+| **macOS ARM64** | [certfwd-osx-arm64.tar.gz](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-osx-arm64.tar.gz) | [sha256](https://github.com/bemafred/certfwd/releases/latest/download/certfwd-osx-arm64.tar.gz.sha256) |
+
+
+### 🔍 Verify download (SHA256)
+
+### 💻 Windows (PowerShell)
+
+```powershell
+Get-FileHash .\certfwd-win-x64.zip -Algorithm SHA256
+```
+
+### 🐧🍎 Linux / macOS (Bash)
+
+```bash
+sha256sum certfwd-linux-x64.tar.gz
+```
+
+---
+
 
 ---
 
