@@ -5,7 +5,7 @@
 Designed to work equally well on Windows and Linux, without dependencies.
 
 [![Latest Release](https://img.shields.io/github/v/release/bemafred/certfwd?label=release)](https://github.com/bemafred/certfwd/releases)
-[![Build Status](https://github.com/bemafred/certfwd/actions/workflows/certfwd-cross-platform-builds.yml/badge.svg)](https://github.com/bemafred/certfwd/actions/workflows/certfwd-cross-platform-builds.yml)
+[![Build Status](https://github.com/bemafred/certfwd/actions/workflows/certfwd-release.yml/badge.svg)](https://github.com/bemafred/certfwd/actions/workflows/certfwd-release.yml)
 [![License](https://img.shields.io/github/license/bemafred/certfwd)](https://github.com/bemafred/certfwd/blob/main/LICENSE)
 
 ---
@@ -84,20 +84,27 @@ The directory is created automatically if it doesn't exist.
 
 ### 🔍 Verify download (SHA256)
 
+Verify that the checksum of the downloaded file matches the .sha256 file included in the release.
+
+---
+
 ### 💻 Windows (PowerShell)
 
 ```powershell
 Get-FileHash .\certfwd-win-x64.zip -Algorithm SHA256
 ```
 
-### 🐧🍎 Linux / macOS (Bash)
+### 🐧 Linux (Bash)
 
 ```bash
 sha256sum certfwd-linux-x64.tar.gz
 ```
 
----
+### 🍎 macOS (Bash)
 
+```bash
+shasum -a 256 certfwd-osx-arm64.tar.gz
+```
 
 ---
 
