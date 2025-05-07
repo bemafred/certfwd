@@ -2,7 +2,7 @@
 
 **certfwd** is a lightweight, standalone reverse proxy tool for forwarding SOAP/TLS requests with injected client certificates and path-aware forwarding. Ideal for cases where the client cannot natively handle certificates appropriately, or where you want full visibility and control over secure traffic.
 
-Designed to work equally well on Windows and Linux, without dependencies.
+Designed to work equally well on Windows, Linux and Mac, without dependencies.
 
 [![Latest Release](https://img.shields.io/github/v/release/bemafred/certfwd?label=release)](https://github.com/bemafred/certfwd/releases)
 [![Build Status](https://github.com/bemafred/certfwd/actions/workflows/certfwd-release.yml/badge.svg)](https://github.com/bemafred/certfwd/actions/workflows/certfwd-release.yml)
