@@ -175,9 +175,6 @@ try
                         }
                     }
 
-                    forwardRequest.Headers.AcceptEncoding.Clear();
-                    forwardRequest.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
-
                     if (logBody)
                     {
                         using var reader = new StreamReader(request.InputStream, clientEncoding);
