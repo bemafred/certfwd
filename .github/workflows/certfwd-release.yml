@@ -1,0 +1,85 @@
+name: Build & Release certfwd
+
+on:
+  push:
+    tags:
+      - 'v*'  # Exempel: v1.0.0
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            ext: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            ext: zip
+          - os: macos-latest
+            rid: osx-arm64
+            ext: tar.gz
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.x'
+
+    - name: Publish self-contained binary
+      run: |
+        dotnet publish certfwd.csproj -c Release -r ${{ matrix.rid }} \
+          -p:PublishAot=true -p:PublishTrimmed=true --self-contained true \
+          -o out/
+
+    - name: Archive binary
+      run: |
+        cd out
+        if [ "${{ matrix.ext }}" = "zip" ]; then
+          7z a ../certfwd-${{ matrix.rid }}.zip *
+        else
+          tar czf ../certfwd-${{ matrix.rid }}.tar.gz *
+        fi
+      shell: bash
+
+    - name: Compute SHA256
+      run: |
+        if [ "${{ matrix.ext }}" = "zip" ]; then
+          sha256sum certfwd-${{ matrix.rid }}.zip > certfwd-${{ matrix.rid }}.zip.sha256
+        else
+          sha256sum certfwd-${{ matrix.rid }}.tar.gz > certfwd-${{ matrix.rid }}.tar.gz.sha256
+        fi
+      shell: bash
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.rid }}-artifacts
+        path: |
+          certfwd-${{ matrix.rid }}.${{ matrix.ext }}
+          certfwd-${{ matrix.rid }}.${{ matrix.ext }}.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist/
+
+    - name: Publish GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist/**/*.zip
+          dist/**/*.tar.gz
+          dist/**/*.sha256
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
