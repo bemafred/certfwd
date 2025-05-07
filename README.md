@@ -124,7 +124,10 @@ Replace win-x64 with linux-x64, osx-x64, or osx-arm64 to build for Linux or macO
 
 ## 🧾 Changelog
 
-### [v1.0.2](https://github.com/bemafred/certfwd/releases/tag/v1.0.2) – 2025-05-07
+### [v1.0.3](https://github.com/bemafred/certfwd/releases/tag/v1.0.3) – 2025-05-08
+- Add CI check for workflow and security file integrity
+
+### [v1.0.2](https://github.com/bemafred/certfwd/releases/tag/v1.0.2) – 2025-05-08
 - Added trigger for Probot settings sync
   
 ### [v1.0.1](https://github.com/bemafred/certfwd/releases/tag/v1.0.1) – 2025-05-07
