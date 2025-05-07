@@ -228,7 +228,7 @@ try
                         else
                         {
                             var responseBody = await response.Content.ReadAsStringAsync();
-                            Log($">>> Body:\n\n{responseBody}\n");
+                            Log($"<<< Body:\n\n{responseBody}\n");
                         }
                     }
 
