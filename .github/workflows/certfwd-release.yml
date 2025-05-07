@@ -34,6 +34,7 @@ jobs:
         dotnet-version: '8.x'
 
     - name: Publish self-contained binary
+      shell: bash
       run: |
         dotnet publish certfwd.csproj -c Release -r ${{ matrix.rid }} \
           -p:PublishAot=true -p:PublishTrimmed=true --self-contained true \
