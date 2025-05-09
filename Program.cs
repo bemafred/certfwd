@@ -141,10 +141,9 @@ try
 {
     while (!cancellationToken.IsCancellationRequested)
     {
-        HttpListenerContext? context = null;
-        
         try
         {
+            HttpListenerContext? context = null;
 
             var getContextTask = listener.GetContextAsync(); // Blocking call, do not await
             var completedTask = await Task.WhenAny(getContextTask, Task.Delay(Timeout.Infinite, cancellationToken));
