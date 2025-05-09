@@ -48,6 +48,7 @@ if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("
     Console.WriteLine("  --log-body=false        Disable body logging");
     Console.WriteLine("  --version               Print version info");
     Console.WriteLine("  --help, -h              Show this help message\n");
+    Console.WriteLine("Ctrl+");
     return;
 }
 
@@ -145,18 +146,10 @@ try
         try
         {
 
-            // Blocking call, do not await here
-            var getContextTask = listener.GetContextAsync(); 
+            var getContextTask = listener.GetContextAsync(); // Blocking call, do not await
             var completedTask = await Task.WhenAny(getContextTask, Task.Delay(Timeout.Infinite, cancellationToken));
-
-            if (completedTask == getContextTask)
-            {
-                context = getContextTask.Result; // Get the result of the completed task
-            }
-            else
-            {
-                break; // Cancellation requested
-            }
+            if (completedTask == getContextTask) context = getContextTask.Result;
+            else break; // Cancellation requested
 
             _ = Task.Run(async () =>
             {
