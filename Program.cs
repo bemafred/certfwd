@@ -140,9 +140,23 @@ try
 {
     while (!cancellationToken.IsCancellationRequested)
     {
+        HttpListenerContext? context = null;
+        
         try
         {
-            var context = await listener.GetContextAsync();
+
+            // Blocking call, do not await here
+            var getContextTask = listener.GetContextAsync(); 
+            var completedTask = await Task.WhenAny(getContextTask, Task.Delay(Timeout.Infinite, cancellationToken));
+
+            if (completedTask == getContextTask)
+            {
+                context = getContextTask.Result; // Get the result of the completed task
+            }
+            else
+            {
+                break; // Cancellation requested
+            }
 
             _ = Task.Run(async () =>
             {
