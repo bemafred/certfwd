@@ -168,7 +168,16 @@ This document describes our guiding principles, CI workflows, and future ideas f
 
 ---
 
+## 🤝 Collaboration Log
+
+This project also serves as an ongoing AI–developer collaboration experiment.
+
+For details, see: [docs/collaboration.md](./docs/collaboration.md)
+
+---
+
 ## ❤️ Author
+
 Created by Sky, in collaboration with Martin – a builder who makes tools feel like they’ve always belonged.
 
 
