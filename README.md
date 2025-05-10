@@ -27,6 +27,8 @@ Designed to work equally well on Windows, Linux and Mac, without dependencies.
 certfwd <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=false]
 ```
 
+💡 Tip: Run `certfwd --help` after download to see usage instructions, keyboard shortcuts, and options.
+
 ### Arguments
 
 | Argument            | Description                                                        |
@@ -63,13 +65,20 @@ This simulates the `X509Store(StoreName.My, StoreLocation.CurrentUser)` path for
 certfwd writes logs to a file in addition to the terminal.
 
 | Platform   | Log File Path                                         |
-|------------|--------------------------------------------------------|
+|------------|-------------------------------------------------------|
 | Windows    | `%LocalAppData%\certfwd\proxy.log`                    |
 | Linux/macOS| `~/.local/share/certfwd/proxy.log`                    |
 
 The directory is created automatically if it doesn't exist.
 
 ---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut       | Action                                                 |
+|----------------|--------------------------------------------------------|
+| `Ctrl+C`       | Gracefully stops the proxy                             |
+| `Ctrl+L`       | Clears the console output (log file remains untouched) |
 
 ## 🔐 Download
 
@@ -124,8 +133,16 @@ Replace win-x64 with linux-x64, osx-x64, or osx-arm64 to build for Linux or macO
 
 ## 🧾 Changelog
 
+### [v1.1.0-preview] – Unreleased
+- Migrated from HttpListener to Kestrel with TLS 1.3 support
+- Added Ctrl+L to clear console (non-destructive)
+- Improved CPU-efficiency using async polling
+- Refined header and body logging output format
+- Introduced .NET 9.0 compatibility and `dotnet-version: '9.0.x'` CI pinning
+- Help text now includes keyboard shortcuts and usage tips
+
 ### [v1.0.4](https://github.com/bemafred/certfwd/releases/tag/v1.0.4) – 2025-05-09
-- Fix Ctrl+C problem, responds but hangs waiting for input from client
+- Fix unresponsive after Ctrl+C problem
 
 ### [v1.0.3](https://github.com/bemafred/certfwd/releases/tag/v1.0.3) – 2025-05-08
 - Add CI check for workflow and security file integrity

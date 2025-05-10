@@ -19,6 +19,9 @@ if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("
     Console.WriteLine("  --log-body=false        Disable body logging");
     Console.WriteLine("  --version               Print version info");
     Console.WriteLine("  --help, -h              Show this help message\n");
+    Console.WriteLine("Ctrl+L to clear the console.\n");
+    Console.WriteLine("Ctrl+C to stop the proxy.\n");
+
     return;
 }
 
@@ -34,14 +37,17 @@ if (!Uri.TryCreate(localUrlRaw, UriKind.Absolute, out var localUri) || (localUri
     Console.WriteLine("[ERROR] Invalid localUrl. It must be a valid HTTP or HTTPS URL.");
     return;
 }
-var localUrl = localUrlRaw.EndsWith("/") ? localUrlRaw : localUrlRaw + "/";
+
+var localUrl = localUrlRaw.EndsWith('/') ? localUrlRaw : localUrlRaw + "/";
+
 var targetUrlRaw = args[1];
 if (!Uri.TryCreate(targetUrlRaw, UriKind.Absolute, out var targetUri) || (targetUri.Scheme != Uri.UriSchemeHttp && targetUri.Scheme != Uri.UriSchemeHttps))
 {
     Console.WriteLine("[ERROR] Invalid targetUrl. It must be a valid HTTP or HTTPS URL.");
     return;
 }
-var targetUrl = targetUrlRaw.EndsWith("/") ? targetUrlRaw : targetUrlRaw + "/";
+var targetUrl = targetUrlRaw.EndsWith('/') ? targetUrlRaw : targetUrlRaw + "/";
+
 var certSubject = args[2];
 
 var preserveEncoding = args.Contains("--preserve-encoding", StringComparer.OrdinalIgnoreCase);
@@ -100,6 +106,25 @@ Console.CancelKeyPress += (_, e) =>
     e.Cancel = true;
 };
 
+_ = Task.Run(async () =>
+{
+    while (!cts.Token.IsCancellationRequested)
+    {
+        if (Console.KeyAvailable)
+        {
+            var key = Console.ReadKey(true);
+            if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.L)
+            {
+                Console.Clear();
+                Log("[INFO] Console cleared via Ctrl+L");
+            }
+        }
+
+        await Task.Delay(100, cts.Token); // CPU-snål väntan
+    }
+});
+
+
 app.Run(async context =>
 {
     try
@@ -129,7 +154,7 @@ app.Run(async context =>
         Log($">>> {context.Request.Method} {context.Request.Path}");
         foreach (var header in context.Request.Headers)
             Log($">>> {header.Key}: {string.Join(",", header.Value.AsEnumerable())}");
-        
+
         if (context.Request.ContentLength > 0)
         {
             using var reader = new StreamReader(context.Request.Body, clientEncoding);
@@ -157,7 +182,7 @@ app.Run(async context =>
             context.Response.Headers[header.Key] = header.Value.ToArray();
             Log($"<<< {header.Key}: {string.Join(",", header.Value.AsEnumerable())}");
         }
-        
+
         var responseBody = await forwardResponse.Content.ReadAsStringAsync(cts.Token);
         if (logBody)
             Log($"<<< Body:\n\n{responseBody}\n");
