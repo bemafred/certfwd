@@ -45,6 +45,9 @@
     <!-- Enable deterministic builds -->
     <Deterministic>true</Deterministic>    
   </PropertyGroup>
+  <ItemGroup>
+    <None Include=".github\workflows\certfwd-certstore-test.yml" />
+  </ItemGroup>
 
   <!-- Optional: disable reflection-heavy features not used -->
   <ItemGroup>
