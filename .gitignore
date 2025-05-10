@@ -3,6 +3,9 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# Exclude generated source zip
+certfwd-src.zip
+
 # dotenv files
 .env
 
