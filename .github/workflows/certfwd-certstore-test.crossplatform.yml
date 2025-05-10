@@ -1,0 +1,65 @@
+name: Test certfwd with certificate in store (cross-platform)
+
+on:
+  push:
+    branches: [net9.0]
+  workflow_dispatch:
+
+jobs:
+  test-certstore:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Create and import test certificate (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        openssl req -x509 -newkey rsa:2048 -nodes -keyout test.key -out test.crt \
+          -subj "/CN=CertfwdTestCert" -days 1
+        openssl pkcs12 -export -out test.pfx -inkey test.key -in test.crt -passout pass:
+        mkdir -p ~/.dotnet/corefx/cryptography/x509stores/my/
+        cp test.pfx ~/.dotnet/corefx/cryptography/x509stores/my/
+
+    - name: Create and import test certificate (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $cert = New-SelfSignedCertificate -DnsName "CertfwdTestCert" -CertStoreLocation "Cert:\CurrentUser\My"
+        if ($cert -eq $null) { throw "Failed to create certificate." }
+
+    - name: Skip cert import on macOS (expect error log)
+      if: runner.os == 'macOS'
+      run: echo "Skipping cert import. This is a negative test for missing certificate handling."
+
+    - name: Run certfwd with test cert (dry run)
+      run: |
+        dotnet run --project certfwd \
+          http://localhost:8081/ https://postman-echo.com/post CertfwdTestCert \
+          --log-body=false &
+        PID=$!
+        sleep 3
+        kill -INT $PID
+        wait $PID || true
+
+    - name: Check proxy.log for expected outcome
+      run: |
+        LOG="$HOME/.local/share/certfwd/proxy.log"
+        if [[ "${{ runner.os }}" == "macOS" ]]; then
+          echo "🧪 macOS: Expecting [ERROR] Certificate not found"
+          grep -q "\[ERROR\] Certificate not found" "$LOG" && echo "✅ Error logged as expected" || (echo "❌ Missing error log" && cat "$LOG" && exit 1)
+        else
+          echo "🧪 ${RUNNER_OS}: Expecting CertfwdTestCert to be used"
+          grep -q "CertfwdTestCert" "$LOG" && echo "✅ Certificate loaded and used" || (echo "❌ Certificate not found or not logged" && cat "$LOG" && exit 1)
+        fi
+      shell: bash

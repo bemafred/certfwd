@@ -46,6 +46,7 @@
     <Deterministic>true</Deterministic>    
   </PropertyGroup>
   <ItemGroup>
+    <None Include=".github\workflows\certfwd-certstore-test.crossplatform.yml" />
     <None Include=".github\workflows\certfwd-certstore-test.yml" />
   </ItemGroup>
 

@@ -158,15 +158,29 @@ Replace win-x64 with linux-x64, osx-x64, or osx-arm64 to build for Linux or macO
 
 ---
 
-## 📘 Test Documentation
 
-For a detailed explanation of how certfwd is tested across platforms — including both success and failure paths for certificate handling — see:
+## ✅ Automated Testing of Certificate Handling
 
-[docs/test.md](./docs/test.md)
+certfwd includes a cross-platform GitHub Actions workflow to verify that TLS client certificates can be imported and used correctly on all major operating systems:
 
-This document describes our guiding principles, CI workflows, and future ideas for strengthening certfwd as a reference for portable infrastructure tooling.
+- **Linux:** Uses OpenSSL and CoreFX X509Store
+- **Windows:** Uses `New-SelfSignedCertificate` in `Cert:\CurrentUser\My`
+- **macOS:** Uses `security import` to load a `.pfx` into the login keychain
 
----
+### 🔁 Workflow
+
+Located at: `.github/workflows/certfwd-certstore-test.yml`  
+Triggered manually or on push to the `net9.0` branch.
+
+This workflow:
+
+1. Generates a temporary self-signed certificate with CN=`CertfwdTestCert`
+2. Imports it into the system store for the OS
+3. Launches certfwd using that certificate name
+4. Verifies that it was found and used by inspecting `proxy.log`
+
+This ensures that the production-level certificate resolution logic in `FindCertificate(...)` works correctly in real-world environments — without mocks or shortcuts.
+
 
 ## ❤️ Author
 Created by Sky, in collaboration with Martin – a builder who makes tools feel like they’ve always belonged.
