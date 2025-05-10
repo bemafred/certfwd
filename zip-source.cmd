@@ -8,4 +8,4 @@ powershell -Command ^
   "$files = Get-Content .zipinclude; Compress-Archive -Path $files -DestinationPath '%ZIP_NAME%'"
 
 echo Created %ZIP_NAME%
-explorer.exe %ZIP_NAME%
+rem explorer.exe %ZIP_NAME%
