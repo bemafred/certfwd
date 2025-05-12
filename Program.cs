@@ -25,6 +25,10 @@ if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("
     return;
 }
 
+// adjust args for Windows
+if (args.Length == 1 && args[0].Contains(Environment.NewLine))
+    args = args[0].Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 if (args.Length < 3)
 {
     Console.WriteLine($"Usage: {programName} <localUrl> <targetUrl> <certSubject> [--preserve-encoding] [--log-body=false]");
