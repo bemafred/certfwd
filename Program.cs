@@ -161,6 +161,10 @@ app.Run(async context =>
         var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
 
         Log($">>> {context.Request.Method} {context.Request.Path}");
+        
+        if (context.Request.Headers.Any())
+            Log(">>> Headers:");
+            
         foreach (var header in context.Request.Headers)
             Log($">>> {header.Key}: {string.Join(",", header.Value.AsEnumerable())}");
 
@@ -186,6 +190,9 @@ app.Run(async context =>
         context.Response.StatusCode = (int)forwardResponse.StatusCode;
 
         Log($"<<< {(int)forwardResponse.StatusCode} {forwardResponse.ReasonPhrase}");
+
+        if (forwardResponse.Headers.Any())
+            Log("<<< Headers:");
 
         foreach (var header in forwardResponse.Headers)
         {
