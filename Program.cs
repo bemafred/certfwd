@@ -145,10 +145,12 @@ app.Run(async context =>
             forwardRequest.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
 
         var clientEncoding = Encoding.UTF8;
-        if (context.Request.ContentType != null && context.Request.ContentType.Contains("charset="))
+        if (context.Request.ContentType != null && context.Request.ContentType.Contains("charset=", StringComparison.OrdinalIgnoreCase))
         {
-            clientEncoding = Encoding.GetEncoding(context.Request.ContentType.Split("charset=")[1]);
+            var charset = context.Request.ContentType.Split("charset=", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1];
+            clientEncoding = Encoding.GetEncoding(charset);
         }
+
         var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
 
         Log($">>> {context.Request.Method} {context.Request.Path}");
@@ -162,11 +164,19 @@ app.Run(async context =>
             if (logBody)
                 Log($">>> Body:\n\n{requestBody}\n");
 
-            forwardRequest.Content = new StringContent(requestBody, forwardEncoding, context.Request.ContentType);
+            var mediaType = context.Request.ContentType?.Split(';', 2, StringSplitOptions.TrimEntries)[0] ?? "application/octet-stream";
+            var content = new StringContent(requestBody, forwardEncoding, mediaType);
+
+            // Sätt charset uttryckligen om det fanns i ursprungsrequest
+            if (context.Request.ContentType?.Contains("charset=", StringComparison.OrdinalIgnoreCase) == true || preserveEncoding)
+            {
+                content.Headers.ContentType!.CharSet = forwardEncoding.WebName;
+            }
+
+            forwardRequest.Content = content;
         }
 
         var forwardResponse = await httpClient.SendAsync(forwardRequest, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-
         context.Response.StatusCode = (int)forwardResponse.StatusCode;
 
         Log($"<<< {(int)forwardResponse.StatusCode} {forwardResponse.ReasonPhrase}");
@@ -200,6 +210,7 @@ app.Run(async context =>
         context.Response.StatusCode = StatusCodes.Status502BadGateway;
     }
 });
+
 
 await app.RunAsync(cts.Token);
 
