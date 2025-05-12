@@ -48,7 +48,8 @@ if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("
     Console.WriteLine("  --log-body=false        Disable body logging");
     Console.WriteLine("  --version               Print version info");
     Console.WriteLine("  --help, -h              Show this help message\n");
-    Console.WriteLine("Ctrl+");
+    Console.WriteLine("Ctrl+L to clear the console.\n");
+    Console.WriteLine("Ctrl+C to stop the proxy.\n");
     return;
 }
 
