@@ -124,6 +124,24 @@ Console.CancelKeyPress += (_, e) =>
     e.Cancel = true; // Prevent immediate termination
 };
 
+_ = Task.Run(async () =>
+{
+    while (!cts.Token.IsCancellationRequested)
+    {
+        if (Console.KeyAvailable)
+        {
+            var key = Console.ReadKey(true);
+            if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.L)
+            {
+                Console.Clear();
+                Log("[INFO] Console cleared via Ctrl+L");
+            }
+        }
+
+        await Task.Delay(100, cts.Token); // CPU-snål väntan
+    }
+});
+
 // ==== HTTP och proxy ====
 
 var listener = new HttpListener();
