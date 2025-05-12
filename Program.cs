@@ -127,7 +127,7 @@ _ = Task.Run(async () =>
             }
         }
 
-        await Task.Delay(100, cts.Token); // CPU-snål väntan
+        await Task.Delay(100, cts.Token);
     }
 });
 
@@ -174,7 +174,6 @@ app.Run(async context =>
             var mediaType = context.Request.ContentType?.Split(';', 2, StringSplitOptions.TrimEntries)[0] ?? "application/octet-stream";
             var content = new StringContent(requestBody, forwardEncoding, mediaType);
 
-            // Sätt charset uttryckligen om det fanns i ursprungsrequest
             if (context.Request.ContentType?.Contains("charset=", StringComparison.OrdinalIgnoreCase) == true || preserveEncoding)
             {
                 content.Headers.ContentType!.CharSet = forwardEncoding.WebName;
