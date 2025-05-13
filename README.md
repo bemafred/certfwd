@@ -124,6 +124,9 @@ Replace win-x64 with linux-x64, osx-x64, or osx-arm64 to build for Linux or macO
 
 ## 🧾 Changelog
 
+### [v1.0.6](https://github.com/bemafred/certfwd/releases/tag/v1.0.6) – 2025-05-13
+- Add Header ({Count}) to log
+- 
 ### [v1.0.5](https://github.com/bemafred/certfwd/releases/tag/v1.0.5) – 2025-05-12
 - Add Ctrl+L to clear the console
 
