@@ -102,10 +102,12 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Logging.ClearProviders();
 
+/*
 builder.Logging.AddConsole();
 builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning); 
 builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Warning);
+*/
 
 var app = builder.Build();
 
