@@ -68,7 +68,7 @@ if (string.IsNullOrWhiteSpace(certSubject))
 var preserveEncoding = args.Contains("--preserve-encoding", StringComparer.OrdinalIgnoreCase);
 var logBody = !args.Contains("--log-body=false", StringComparer.OrdinalIgnoreCase);
 
-Log($"Kestrel listening on: {localUrl}");
+Log($"Listen on: {localUrl}");
 Log($"Forward to: {targetUrl}");
 Log($"Client certificate: {certSubject}");
 Log($"Preserve encoding forward: {(preserveEncoding ? "YES" : "NO (UTF-8 used)")}");
@@ -202,6 +202,8 @@ app.Run(async context =>
     await using var forwardStream = await response.Content.ReadAsStreamAsync();
     await forwardStream.CopyToAsync(context.Response.Body);
 });
+
+Log($"[OK] Kestrel started on {localUrl}");
 
 await app.RunAsync(localUrl);
 
