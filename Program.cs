@@ -178,18 +178,18 @@ try
                     var clientEncoding = request.ContentEncoding;
                     var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
 
-                    Log($">>> {request.HttpMethod} {request.Url}");
-                    Log($">>> Client encoding:  {clientEncoding.WebName}");
-                    Log($">>> Forward encoding: {forwardEncoding.WebName}");
-
-                    Log(">>> Headers:");
-                    foreach (string header in request.Headers)
-                        Log($">>> {header}: {request.Headers[header]}");
-
                     var forwardUriBase = new Uri(targetUrl);
                     var finalTarget = new Uri(forwardUriBase, request.RawUrl);
                     var forwardRequest = new HttpRequestMessage(new HttpMethod(request.HttpMethod), finalTarget);
-                    Log($">>> Forward target: {finalTarget}");
+
+                    Log($">>> Client request: {request.HttpMethod} {request.Url}");
+                    Log($">>> Client encoding:  {clientEncoding.WebName}");
+                    Log($">>> Forward request: {forwardRequest.Method} {forwardRequest.RequestUri!.AbsoluteUri}");
+                    Log($">>> Forward encoding: {forwardEncoding.WebName}");
+
+                    Log($">>> Headers ({request.Headers.Count}):");
+                    foreach (string header in request.Headers)
+                        Log($">>> {header}: {request.Headers[header]}");
 
                     foreach (string header in request.Headers)
                     {
@@ -235,7 +235,8 @@ try
                     }
 
                     Log($"<<< {((int)response.StatusCode)} {response.ReasonPhrase}");
-                    Log("<<< Headers:");
+                    
+                    Log($"<<< Headers ({response.Headers.Count()}):");
                     foreach (var header in response.Headers)
                         Log($"<<< {header.Key}: {string.Join(", ", header.Value)}");
 
