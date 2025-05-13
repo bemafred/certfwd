@@ -132,7 +132,7 @@ app.Run(async context =>
     Log($">>> Forward request {forwardRequest.Method} {forwardRequest.RequestUri!.AbsoluteUri}");
     Log($">>> Forward encoding: {forwardEncoding.WebName}");
 
-    Log(">>> Headers:");
+    Log($">>> Headers ({request.Headers.Count}):");
     foreach (var header in request.Headers)
         Log($">>> {header.Key}: {header.Value}");
 
@@ -176,7 +176,7 @@ app.Run(async context =>
     }
 
     Log($"<<< {(int)response.StatusCode} {response.ReasonPhrase}");
-    Log("<<< Headers:");
+    Log($"<<< Headers ({response.Headers.Count()}):");
     foreach (var header in response.Headers)
         Log($"<<< {header.Key}: {string.Join(", ", header.Value)}");
 
