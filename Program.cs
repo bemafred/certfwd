@@ -132,7 +132,7 @@ _ = Task.Run(async () =>
         if (Console.KeyAvailable)
         {
             var key = Console.ReadKey(true);
-            if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.L)
+            if (key is { Modifiers: ConsoleModifiers.Control, Key: ConsoleKey.L })
             {
                 Console.Clear();
                 Log("[INFO] Console cleared via Ctrl+L");
