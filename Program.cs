@@ -1,4 +1,6 @@
-using System.Security.Authentication;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -6,7 +8,8 @@ var programName = Path.GetFileNameWithoutExtension(Environment.GetCommandLineArg
 
 if (args.Contains("--version", StringComparer.OrdinalIgnoreCase))
 {
-    var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+    var version = Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
     Console.WriteLine($"{programName} version {version}");
     return;
 }
@@ -21,13 +24,18 @@ if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("
     Console.WriteLine("  --help, -h              Show this help message\n");
     Console.WriteLine("Ctrl+L to clear the console.\n");
     Console.WriteLine("Ctrl+C to stop the proxy.\n");
-
     return;
 }
 
-// adjust args for Windows
-if (args.Length == 1 && args[0].Contains(Environment.NewLine))
-    args = args[0].Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+var logPath = Path.Combine(
+    OperatingSystem.IsWindows()
+        ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+        : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.local/share",
+    programName,
+    "proxy.log"
+);
+
+Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
 if (args.Length < 3)
 {
@@ -35,83 +43,59 @@ if (args.Length < 3)
     return;
 }
 
-var localUrlRaw = args[0];
-if (!Uri.TryCreate(localUrlRaw, UriKind.Absolute, out var localUri) || (localUri.Scheme != Uri.UriSchemeHttp && localUri.Scheme != Uri.UriSchemeHttps))
+var localUrl = args[0];
+var targetUrl = args[1];
+var certSubject = args[2];
+
+if (!Uri.TryCreate(localUrl, UriKind.Absolute, out var localUri) || (localUri.Scheme != Uri.UriSchemeHttp && localUri.Scheme != Uri.UriSchemeHttps))
 {
     Console.WriteLine("[ERROR] Invalid localUrl. It must be a valid HTTP or HTTPS URL.");
     return;
 }
 
-var localUrl = localUrlRaw.EndsWith('/') ? localUrlRaw : localUrlRaw + "/";
-
-var targetUrlRaw = args[1];
-if (!Uri.TryCreate(targetUrlRaw, UriKind.Absolute, out var targetUri) || (targetUri.Scheme != Uri.UriSchemeHttp && targetUri.Scheme != Uri.UriSchemeHttps))
+if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var targetUri) || (targetUri.Scheme != Uri.UriSchemeHttp && targetUri.Scheme != Uri.UriSchemeHttps))
 {
     Console.WriteLine("[ERROR] Invalid targetUrl. It must be a valid HTTP or HTTPS URL.");
     return;
 }
-var targetUrl = targetUrlRaw.EndsWith('/') ? targetUrlRaw : targetUrlRaw + "/";
 
-var certSubject = args[2];
+if (string.IsNullOrWhiteSpace(certSubject))
+{
+    Console.WriteLine("[ERROR] Invalid certSubject. It cannot be null or empty.");
+    return;
+}
 
 var preserveEncoding = args.Contains("--preserve-encoding", StringComparer.OrdinalIgnoreCase);
 var logBody = !args.Contains("--log-body=false", StringComparer.OrdinalIgnoreCase);
 
-var logPath = Path.Combine(
-    OperatingSystem.IsWindows()
-        ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local/share"),
-    programName,
-    "proxy.log"
-);
-
-// ReSharper disable once NullableWarningSuppressionIsUsed
-Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+Log($"Kestrel listening on: {localUrl}");
+Log($"Forward to: {targetUrl}");
+Log($"Client certificate: {certSubject}");
+Log($"Preserve encoding forward: {(preserveEncoding ? "YES" : "NO (UTF-8 used)")}");
+Log($"Log to: {logPath}");
 
 var clientCert = FindCertificate(certSubject);
 
-if (clientCert is null)
+if (clientCert == null)
 {
     Log("[ERROR] Certificate not found.");
     return;
 }
-
-Log($"Starting {programName} with Kestrel");
-Log($"Listening on: {localUrl}");
-Log($"Forwarding to: {targetUrl}");
-Log($"Client Certificate: {clientCert.Subject}");
-Log($"Preserve Encoding: {(preserveEncoding ? "Yes" : "No")}");
+Log($"[OK] Client certificate found: {clientCert.Subject}");
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.WebHost.ConfigureKestrel(options =>
-{
-    var uri = new Uri(localUrl);
-
-    options.ListenAnyIP(uri.Port, listenOptions =>
-    {
-        if (uri.Scheme == Uri.UriSchemeHttps)
-        {
-            listenOptions.UseHttps(clientCert, httpsOptions =>
-            {
-                httpsOptions.SslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12;
-            });
-        }
-    });
-});
-
 builder.Logging.ClearProviders();
-
-/*
-builder.Logging.AddConsole();
-builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
-builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning); 
-builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Warning);
-*/
 
 var app = builder.Build();
 
+var handler = new HttpClientHandler();
+handler.ClientCertificates.Add(clientCert);
+handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+var httpClient = new HttpClient(handler);
+
 var cts = new CancellationTokenSource();
+var cancellationToken = cts.Token;
+
 Console.CancelKeyPress += (_, e) =>
 {
     Log("[INFO] Shutdown signal received. Stopping...");
@@ -125,113 +109,101 @@ _ = Task.Run(async () =>
     {
         if (Console.KeyAvailable)
         {
-            var key = Console.ReadKey(true);
+            var key = Console.ReadKey(intercept: true);
             if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.L)
             {
                 Console.Clear();
                 Log("[INFO] Console cleared via Ctrl+L");
             }
         }
-
         await Task.Delay(100, cts.Token);
     }
 });
 
-
 app.Run(async context =>
 {
+    var request = context.Request;
+    var forwardRequest = new HttpRequestMessage(new HttpMethod(request.Method), $"{targetUrl.TrimEnd('/')}{request.Path}{request.QueryString}");
+    var clientEncoding = Encoding.GetEncoding(request.ContentType?.Split("charset=").LastOrDefault()?.Trim() ?? "utf-8");
+    var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
+    
+    Log($">>> Client request: {request.Method} {request.Scheme}://{request.Host}{request.Path}{request.QueryString}");
+    Log($">>> Client encoding:  {clientEncoding.WebName}");
+    Log($">>> Forward request {forwardRequest.Method} {forwardRequest.RequestUri!.AbsoluteUri}");
+    Log($">>> Forward encoding: {forwardEncoding.WebName}");
+
+    Log(">>> Headers:");
+    foreach (var header in request.Headers)
+        Log($">>> {header.Key}: {header.Value}");
+
+    foreach (var header in request.Headers)
+    {
+        if (!string.Equals(header.Key, "Content-Length", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(header.Key, "Host", StringComparison.OrdinalIgnoreCase))
+        {
+            forwardRequest.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+        }
+    }
+
+    if (logBody)
+    {
+        using var reader = new StreamReader(request.Body, clientEncoding);
+        var requestBody = await reader.ReadToEndAsync();
+        Log($">>> Body:\n\n{requestBody}\n");
+
+        var forwardBytes = forwardEncoding.GetBytes(requestBody);
+        forwardRequest.Content = new ByteArrayContent(forwardBytes);
+        forwardRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(request.ContentType ?? "application/octet-stream");
+        forwardRequest.Content.Headers.ContentType.CharSet = forwardEncoding.WebName;
+    }
+    else
+    {
+        forwardRequest.Content = new StreamContent(request.Body);
+        forwardRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(request.ContentType ?? "application/octet-stream");
+    }
+
+    HttpResponseMessage response;
+    
     try
     {
-        var clientHandler = new HttpClientHandler
-        {
-            ClientCertificates = { clientCert },
-            SslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12,
-            ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-        };
-
-        using var httpClient = new HttpClient(clientHandler);
-        var forwardUri = new Uri(new Uri(targetUrl), context.Request.Path + context.Request.QueryString);
-
-        var forwardRequest = new HttpRequestMessage(new HttpMethod(context.Request.Method), forwardUri);
-
-        foreach (var header in context.Request.Headers)
-            forwardRequest.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-
-        var clientEncoding = Encoding.UTF8;
-        if (context.Request.ContentType != null && context.Request.ContentType.Contains("charset=", StringComparison.OrdinalIgnoreCase))
-        {
-            var charset = context.Request.ContentType.Split("charset=", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1];
-            clientEncoding = Encoding.GetEncoding(charset);
-        }
-
-        var forwardEncoding = preserveEncoding ? clientEncoding : Encoding.UTF8;
-
-        Log($">>> {context.Request.Method} {context.Request.Path}");
-        
-        if (context.Request.Headers.Any())
-            Log(">>> Headers:");
-            
-        foreach (var header in context.Request.Headers)
-            Log($">>> {header.Key}: {string.Join(",", header.Value.AsEnumerable())}");
-
-        if (context.Request.ContentLength > 0)
-        {
-            using var reader = new StreamReader(context.Request.Body, clientEncoding);
-            var requestBody = await reader.ReadToEndAsync();
-            if (logBody)
-                Log($">>> Body:\n\n{requestBody}\n");
-
-            var mediaType = context.Request.ContentType?.Split(';', 2, StringSplitOptions.TrimEntries)[0] ?? "application/octet-stream";
-            var content = new StringContent(requestBody, forwardEncoding, mediaType);
-
-            if (context.Request.ContentType?.Contains("charset=", StringComparison.OrdinalIgnoreCase) == true || preserveEncoding)
-            {
-                content.Headers.ContentType!.CharSet = forwardEncoding.WebName;
-            }
-
-            forwardRequest.Content = content;
-        }
-
-        var forwardResponse = await httpClient.SendAsync(forwardRequest, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-        context.Response.StatusCode = (int)forwardResponse.StatusCode;
-
-        Log($"<<< {(int)forwardResponse.StatusCode} {forwardResponse.ReasonPhrase}");
-
-        if (forwardResponse.Headers.Any())
-            Log("<<< Headers:");
-
-        foreach (var header in forwardResponse.Headers)
-        {
-            context.Response.Headers[header.Key] = header.Value.ToArray();
-            Log($"<<< {header.Key}: {string.Join(",", header.Value)}");
-        }
-
-        foreach (var header in forwardResponse.Content.Headers)
-        {
-            context.Response.Headers[header.Key] = header.Value.ToArray();
-            Log($"<<< {header.Key}: {string.Join(",", header.Value.AsEnumerable())}");
-        }
-
-        var responseBody = await forwardResponse.Content.ReadAsStringAsync(cts.Token);
-        if (logBody)
-            Log($"<<< Body:\n\n{responseBody}\n");
-
-        await context.Response.WriteAsync(responseBody, forwardEncoding, cts.Token);
+        response = await httpClient.SendAsync(forwardRequest, HttpCompletionOption.ResponseHeadersRead);
     }
-    catch (OperationCanceledException)
+    catch (HttpRequestException ex)
     {
-        Log("[INFO] Request canceled by shutdown signal.");
-        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        Log($"[ERROR] Failed to forward request: {ex.Message}");
+        context.Response.StatusCode = (int)HttpStatusCode.BadGateway;
+        return;
     }
-    catch (Exception ex)
+
+    Log($"<<< {(int)response.StatusCode} {response.ReasonPhrase}");
+    Log("<<< Headers:");
+    foreach (var header in response.Headers)
+        Log($"<<< {header.Key}: {string.Join(", ", header.Value)}");
+
+    if (logBody)
     {
-        Log($"[ERROR] Exception during forwarding: {ex.Message}");
-        context.Response.StatusCode = StatusCodes.Status502BadGateway;
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Log($"<<< Body:\n\n{responseBody}\n");
     }
+
+    context.Response.StatusCode = (int)response.StatusCode;
+    context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+    if (response.Content.Headers.ContentLength.HasValue)
+        context.Response.ContentLength = response.Content.Headers.ContentLength.Value;
+
+    foreach (var header in response.Content.Headers)
+    {
+        foreach (var value in header.Value)
+        {
+            context.Response.Headers[header.Key] = value;
+        }
+    }
+
+    await using var forwardStream = await response.Content.ReadAsStreamAsync();
+    await forwardStream.CopyToAsync(context.Response.Body);
 });
 
-
-await app.RunAsync(cts.Token);
+await app.RunAsync(localUrl);
 
 return;
 
@@ -248,9 +220,17 @@ X509Certificate2? FindCertificate(string subjectName)
     foreach (var location in new[] { StoreLocation.CurrentUser, StoreLocation.LocalMachine })
     {
         using var store = new X509Store(StoreName.My, location);
-        store.Open(OpenFlags.ReadOnly);
-        var certs = store.Certificates.Find(X509FindType.FindBySubjectName, subjectName, false);
-        if (certs.Count > 0) return certs[0];
+        try
+        {
+            store.Open(OpenFlags.ReadOnly);
+            var certs = store.Certificates.Find(X509FindType.FindBySubjectName, subjectName, false);
+            if (certs.Count > 0)
+                return certs[0];
+        }
+        catch
+        {
+            // Ignore
+        }
     }
     return null;
 }
